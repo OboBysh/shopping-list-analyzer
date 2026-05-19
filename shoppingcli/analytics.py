@@ -33,3 +33,13 @@ def daily_expenses(purchases):
         daily[date] = daily.get(date, 0) + p['price']
     # Сортировка по дате для удобства
     return dict(sorted(daily.items()))
+def spent_in_period(purchases, start_date: str, end_date: str) -> float:
+    """
+    Возвращает сумму расходов за период с start_date по end_date (включительно).
+    Даты в формате ГГГГ-ММ-ДД.
+    """
+    total = 0.0
+    for p in purchases:
+        if start_date <= p['date'] <= end_date:
+            total += p['price']
+    return total

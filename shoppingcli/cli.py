@@ -6,9 +6,8 @@ from .logic import (
     add_purchase, get_all_purchases, delete_purchase,
     filter_by_date, filter_by_category
 )
-from .analytics import total_spent, top_items, spending_by_category, daily_expenses
 from .exceptions import ValidationError, PurchaseNotFoundError, StorageError
-
+from .analytics import total_spent, top_items, spending_by_category, daily_expenses, spent_in_period
 def print_separator():
     print("-" * 50)
 
@@ -121,6 +120,49 @@ def stats_interactive():
     daily = daily_expenses(purchases)
     for date, amount in sorted(daily.items()):
         print(f"   {date}: {amount:.2f} руб.")
+def period_spending_interactive():
+    """Расходы за период (день/неделя/месяц)."""
+    purchases = get_all_purchases()
+    if not purchases:
+        print("📭 Нет данных для расчёта.")
+        return
+    print("\n--- Расходы за период ---")
+    print("Выберите период:")
+    print("1. День (конкретная дата)")
+    print("2. Неделя (по дате начала)")
+    print("3. Месяц (год и месяц)")
+    choice = input("Ваш выбор: ").strip()
+    from datetime import datetime, timedelta
+    try:
+        if choice == "1":
+            date_str = input("Введите дату в формате ГГГГ-ММ-ДД: ").strip()
+            datetime.strptime(date_str, "%Y-%m-%d")  # проверка формата
+            total = spent_in_period(purchases, date_str, date_str)
+            print(f"💰 Расходы за {date_str}: {total:.2f} руб.")
+        elif choice == "2":
+            start_str = input("Введите дату начала недели (понедельник) в формате ГГГГ-ММ-ДД: ").strip()
+            start = datetime.strptime(start_str, "%Y-%m-%d")
+            end = start + timedelta(days=6)
+            end_str = end.strftime("%Y-%m-%d")
+            total = spent_in_period(purchases, start_str, end_str)
+            print(f"💰 Расходы за неделю с {start_str} по {end_str}: {total:.2f} руб.")
+        elif choice == "3":
+            year_month = input("Введите месяц в формате ГГГГ-ММ (например, 2025-03): ").strip()
+            start = datetime.strptime(year_month + "-01", "%Y-%m-%d")
+            # последний день месяца
+            if start.month == 12:
+                end = start.replace(year=start.year+1, month=1, day=1) - timedelta(days=1)
+            else:
+                end = start.replace(month=start.month+1, day=1) - timedelta(days=1)
+            end_str = end.strftime("%Y-%m-%d")
+            total = spent_in_period(purchases, start.strftime("%Y-%m-%d"), end_str)
+            print(f"💰 Расходы за {year_month}: {total:.2f} руб.")
+        else:
+            print("❌ Неверный выбор.")
+    except ValueError:
+        print("❌ Ошибка формата даты. Используйте ГГГГ-ММ-ДД или ГГГГ-ММ.")
+    except Exception as e:
+        print(f"❌ Ошибка: {e}")
 
 def main():
     """Главное меню."""
@@ -132,7 +174,8 @@ def main():
         print("2. Просмотреть покупки")
         print("3. Статистика")
         print("4. Удалить покупку")
-        print("5. Выход")
+        print("5. Расходы за период")
+        print("6. Выход")
         choice = input("Выберите действие: ").strip()
         if choice == "1":
             add_purchase_interactive()
@@ -143,6 +186,8 @@ def main():
         elif choice == "4":
             delete_purchase_interactive()
         elif choice == "5":
+            period_spending_interactive()
+        elif choice == "6":
             print("👋 До свидания!")
             break
         else:
